@@ -12,7 +12,7 @@
     "--rm",
     
   ],
-  "onCreateCommand": "sudo apt-get update && sudo apt-get install --no-install-recommends -y git",
+  // "onCreateCommand": "sudo apt-get update && sudo apt-get install --no-install-recommends -y git",
   // "updateContentCommand": "sudo apt-get update",
   "waitFor": "updateContentCommand",
   "postStartCommand": {
@@ -48,10 +48,13 @@
       "extensions": [
         "MathWorks.language-matlab",
         "ms-toolsai.jupyter",
+        "ms-toolsai.jupyter-keymap",
         "ms-python.python",
         "github.copilot-chat",
         "lfs.vscode-emacs-friendly",
-        "toasty-technologies.octave"
+        "toasty-technologies.octave",
+        "james-yu.latex-workshop",
+        "gruntfuggly.todo-tree"
       ],
       "settings": {
         "MATLAB.signIn": true,
