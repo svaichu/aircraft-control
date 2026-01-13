@@ -1,0 +1,72 @@
+{
+  "name": "${localWorkspaceFolderBasename}",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/home/matlab/${localWorkspaceFolderBasename},type=bind,consistency=cached",
+  "workspaceFolder": "/home/matlab/${localWorkspaceFolderBasename}",
+  // Dont restrict shm, ffs
+  "runArgs": [
+    "--name=devcontainer-matlab",
+    "--rm",
+    
+  ],
+  "onCreateCommand": "sudo apt-get update && sudo apt-get install --no-install-recommends -y git",
+  // "updateContentCommand": "sudo apt-get update",
+  "waitFor": "updateContentCommand",
+  "postStartCommand": {
+    "start-matlab-desktop": "run.sh -shell", // Working, no need to open noVNC browser
+    // "start-matlab-desktop": "run.sh -shell BROWSER=false VNC=false &" // not working
+    // "start-matlab-desktop": "nohup run.sh -shell > /tmp/matlab.log 2>&1 &" // not working
+    // "start-matlab": "matlab-proxy-app &"
+    // "start-matlab-desktop": "run.sh -shell &", // not working
+    // "start-matlab-proxy": "cd /bin && bash run.sh -shell &" // not working
+  },
+  "portsAttributes": {
+    "8888": {
+      "label": "MATLAB",
+      // "onAutoForward": "openPreview"
+    }
+  },
+  "containerEnv": {
+    "MWI_APP_PORT": "8888",
+    "MWI_ENABLE_TOKEN_AUTH": "False",
+    
+    // Configure MATLAB's startup folder
+    "MATLAB_USERWORKDIR": "/home/matlab/${localWorkspaceFolderBasename}",
+    "MATLAB_USE_USERWORK": "1",
+    // Enable embedding the desktop into VSCode's Simple Browser
+    "MWI_CUSTOM_HTTP_HEADERS": "{\"Content-Security-Policy\": \"frame-ancestors *\"}",
+    "MW_DDUX_FORCE_ENABLE": "true",
+    
+    "MW_CONTEXT_TAGS": "MATLAB:CODESPACES:V1"
+  },
+  // Configure VSCode Extensions
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "MathWorks.language-matlab",
+        "ms-toolsai.jupyter",
+        "ms-python.python",
+        "github.copilot-chat",
+        "lfs.vscode-emacs-friendly",
+        "toasty-technologies.octave"
+      ],
+      "settings": {
+        "MATLAB.signIn": true,
+        // Adds MATLAB's PIPX environments to Python indexer
+        "python.venvPath": "/home/matlab/.local/share/pipx/venvs/",
+        // Marks MATLAB Kernel as a trusted source
+        "jupyter.kernels.trusted": [
+          "/home/matlab/.local/share/pipx/venvs/matlab-proxy/share/jupyter/kernels/jupyter_matlab_kernel/kernel.json",
+          "/home/matlab/.local/share/pipx/venvs/octave_kernel/share/jupyter/kernels/octave/kernel.json"
+        ],
+        "MATLAB.installPath": "/opt/matlab/R2025b"
+      }
+    }
+  },
+  "hostRequirements": {
+    "cpus": 4
+  }
+}
