@@ -1,0 +1,54 @@
+name: Build LaTeX PDF
+
+on:
+  push:
+    paths:
+      - "**/*.tex"
+      - "**/*.bib"
+      - "**/*.sty"
+      - "**/*.cls"
+      - ".github/workflows/latex.yml"
+    tags:
+      - "v*"
+    branches:
+      - main
+  pull_request:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compile LaTeX
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: main.tex
+
+      - name: Rename PDF
+        run: mv main.pdf coursework.pdf
+
+      - name: Upload PDF to release
+        if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: coursework.pdf
+
+      - name: Get latest release tag
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        id: get_release
+        run: echo "tag=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Update latest release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.get_release.outputs.tag }}
+          files: coursework.pdf
+          overwrite: true
