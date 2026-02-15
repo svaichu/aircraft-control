@@ -1,1 +1,10 @@
 octave-workspace
+*.log
+*.blg
+*.fdb_latexmk
+*.fls
+*.aux
+*.bbl
+*.toc
+*.synctex.gz
+report/main.pdf
