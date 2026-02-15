@@ -1,0 +1,39 @@
+\section{Block diagrams}
+A cool way to create block diagrams is tikz, an example is depicted in Fig.~\ref{fig:blockDiagram}.
+\begin{figure}[htb]
+  \centering
+  \tikzstyle{block}     = [draw, rectangle, minimum height=1cm, minimum width=1.6cm]
+    \tikzstyle{branch}    = [circle, inner sep=0pt, minimum size=1mm, fill=black, draw=black]
+    \tikzstyle{connector} = [->, thick]
+    \tikzstyle{dummy}     = [inner sep=0pt, minimum size=0pt]
+    \tikzstyle{inout}     = []
+    \tikzstyle{sum}       = [circle, inner sep=0pt, minimum size=2mm, draw=black, thick]
+    \begin{tikzpicture}[auto, node distance=1.6cm, >=stealth']
+      \node[block] (K) {$\mathbf{K}$};
+      \node[block] (G) [right=of K] {$\mathbf{G}$};
+      \node[sum] (s1) [left=of K] {};
+      \node[inout] (r) [left=of s1] {$\mathbf{r}$};
+      \node[sum] (s2) [right=of G] {};
+			\node[block] (Gd) [above=0.6cm of s2] {$\mathbf{G}_d$};
+      \node[inout] (d) [above=0.6cm of Gd] {$\mathbf{d}$};  
+      \node[branch] (b1) [right=of s2] {};
+      \node[inout] (y) [right=of b1] {$\mathbf{y}$};
+      \node[sum] (s3) [below=0.8cm of b1] {};
+      \node[inout] (n) [right=of s3] {$\mathbf{n}$};
+      \node[dummy] (d1) [below right=0.1cm and 0.05cm of s1] {$-$};
+        
+      \draw[connector] (s1) -- (K);
+      \draw[connector] (K) -- node {$\mathbf{u}$} (G);
+      \draw[connector] (G) -- (s2);
+      \draw[thick] (s2) -- (b1);
+      \draw[connector] (b1) -- (y);
+      \draw[connector] (b1) -- (s3);
+      \draw[connector] (n) -- (s3);
+      \draw[connector] (d) -- (Gd);
+      \draw[connector] (Gd) -- (s2);
+      \draw[connector] (r) -- (s1);
+      \draw[connector] (s3) -| node [yshift=0.3cm] {$\mathbf{y}_m$} (s1);
+    \end{tikzpicture}
+	  \caption{One degree-of-freedom feedback control system.}
+    \label{fig:blockDiagram}
+\end{figure}
