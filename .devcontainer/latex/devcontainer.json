@@ -1,5 +1,5 @@
 {
-    "name": "itex",
+    "name": "latex-devcontainer",
     "image": "texlive/texlive:latest",
     "runArgs": ["--network=host", "--rm", "--name", "itex"],
     "customizations": {
