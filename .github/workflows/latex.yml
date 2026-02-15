@@ -30,7 +30,7 @@ jobs:
           root_file: report/main.tex
 
       - name: Rename PDF
-        run: mv report/main.pdf coursework.pdf
+        run: mv main.pdf coursework.pdf
 
       - name: Upload PDF to release
         if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/')
