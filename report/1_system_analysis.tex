@@ -1,0 +1,39 @@
+
+\subsection{System Zeros: Part I}
+
+Task: Given square MIMO system (inputs dim = outputs dim), find the system zeros.
+
+\subsubsection{State space}
+
+When the system is given in the state space form, Rosenbrock-matrix (\ref{eq:rosenbrock}) is used.
+
+\begin{equation}
+    P(s) = \begin{bmatrix}
+        sI - A & -B \\ C & D
+    \end{bmatrix}
+    \label{eq:rosenbrock}
+\end{equation}
+
+Determinant of the above matrix is computed, which upon solving for $s$ gives the system zeros.
+
+\begin{align*}
+    \text{det}(P(s)) &= 0 \\
+    (sI - A)(D) - (-B)(C) &= 0 \\
+\end{align*}
+
+Matlab implementation of the above procedure is given in the code snippet below. The function \texttt{getZeros} takes the state space matrices $A$, $B$, $C$, and $D$ as input and returns the system zeros.
+
+% add a code snippet
+\begin{lstlisting}[style=Matlab-editor, basicstyle=\ttfamily\small]
+function zeros = getZeros(A, B, C, D)
+    syms s; % Define symbolic variable
+    n = size(A,1);
+    M = [s*eye(n)-A, -B; C, D];
+    zero_eq = det(M); % Compute determinant symbolically
+    zeros = vpasolve(zero_eq, s); % Use vpasolve for numerical solutions
+    zeros = double(zeros); % Convert symbolic results to double
+end
+\end{lstlisting}
+
+
+\subsubsection{Transfer Function}
