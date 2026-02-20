@@ -1,7 +1,12 @@
 
-\subsection{System Zeros: Part I}
+\subsection{System Zeros}
 
-Task: Given square MIMO system (inputs dim = outputs dim), find the system zeros.
+Task: Find zeros of a given MIMO system for two cases:
+\begin{itemize}
+    \item Number of inputs is equal to the number of outputs.
+    \item Number of inputs is not equal to the number of outputs.
+\end{itemize}
+Either case, MATLAB's control system toolbox or python's control library are not used.
 
 \subsubsection{State space}
 
@@ -35,5 +40,26 @@ function zeros = getZeros(A, B, C, D)
 end
 \end{lstlisting}
 
+The above function can be compared with MATLAB's built-in \texttt{tzero} function. 
+
+
+\begin{lstlisting}[style=Matlab-editor, basicstyle=\ttfamily\small]
+p = 4; % input size
+m = p; % output size
+s = tf('s');
+sys = rss(6, m, p);
+A = sys.A; B = sys.B; C = sys.C; D = sys.D;
+
+z1 = getZeros(A, B, C, D);
+z2 = tzero(sys);
+z1 = sort(z1(:));
+z2 = sort(z2(:));
+assert(numel(z1) == numel(z2) && all(abs(z1 - z2) < 1e-6), ...
+    'getZeros and tzero do not match within tolerance');
+disp('getZeros and tzero match within tolerance');
+\end{lstlisting}
+
 
 \subsubsection{Transfer Function}
+
+When the system is given in the transfer function form, we use an alternative method of finding zeros. 
