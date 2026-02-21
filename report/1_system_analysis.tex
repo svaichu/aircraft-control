@@ -1,5 +1,5 @@
 
-\subsection{System Zeros}
+\section{System Zeros}
 
 Task: Find zeros of a given MIMO system for two cases:
 \begin{itemize}
@@ -8,9 +8,9 @@ Task: Find zeros of a given MIMO system for two cases:
 \end{itemize}
 Either case, MATLAB's control system toolbox or python's control library are not used.
 
-\subsubsection{State space}
+\subsection{State space}
 
-When the system is given in the state space form, Rosenbrock-matrix (\ref{eq:rosenbrock}) is used.
+When the system is given in the state space form, Rosenbrock-matrix is used.
 
 \begin{equation}
     P(s) = \begin{bmatrix}
@@ -28,22 +28,23 @@ Determinant of the above matrix is computed, which upon solving for $s$ gives th
 
 Matlab implementation of the above procedure is given in the code snippet below. The function \texttt{getZeros} takes the state space matrices $A$, $B$, $C$, and $D$ as input and returns the system zeros.
 
-% add a code snippet
-\begin{lstlisting}[style=Matlab-editor, basicstyle=\ttfamily\small]
-function zeros = getZeros(A, B, C, D)
+\begin{minted}[frame=lines, linenos]{matlab} 
+function zero = getZeros(A, B, C, D)
     syms s; % Define symbolic variable
     n = size(A,1);
     M = [s*eye(n)-A, -B; C, D];
     zero_eq = det(M); % Compute determinant symbolically
-    zeros = vpasolve(zero_eq, s); % Use vpasolve for numerical solutions
-    zeros = double(zeros); % Convert symbolic results to double
+    zero = vpasolve(zero_eq, s); % Use vpasolve for numerical solutions
+    zero = double(zero); % Convert symbolic results to double
 end
-\end{lstlisting}
+\end{minted}
 
 The above function can be compared with MATLAB's built-in \texttt{tzero} function. 
 
-
-\begin{lstlisting}[style=Matlab-editor, basicstyle=\ttfamily\small]
+\begin{minted}[mathescape,
+               linenos,
+               frame=lines,
+               framesep=2mm]{matlab}
 p = 4; % input size
 m = p; % output size
 s = tf('s');
@@ -57,9 +58,9 @@ z2 = sort(z2(:));
 assert(numel(z1) == numel(z2) && all(abs(z1 - z2) < 1e-6), ...
     'getZeros and tzero do not match within tolerance');
 disp('getZeros and tzero match within tolerance');
-\end{lstlisting}
+\end{minted}
 
 
-\subsubsection{Transfer Function}
+\section{Transfer Function}
 
 When the system is given in the transfer function form, we use an alternative method of finding zeros. 
