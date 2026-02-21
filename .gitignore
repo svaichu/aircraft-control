@@ -8,3 +8,4 @@ octave-workspace
 *.toc
 *.synctex.gz
 report/main.pdf
+report/_minted/*
