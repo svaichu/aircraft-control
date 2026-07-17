@@ -1,0 +1,125 @@
+
+
+% \noindent
+We prove
+\begin{equation}
+E\left\{\lim_{T\to\infty}\frac{1}{2T}\int_{-T}^{T} z(t)^Tz(t)\,dt\right\}
+\;=\;
+\operatorname{tr}E\{z(t)z(t)^T\}
+\end{equation}
+
+\begin{equation}
+    \implies
+    \frac{1}{2\pi}\int_{-\infty}^{\infty}\operatorname{tr}\big[F(j\omega)F(j\omega)^H\big]\,d\omega
+    \;=\;
+    \|F\|_2^2,
+\end{equation}
+
+where $z(t) = Fl(P,K)w(t) \triangleq F(s)w(t)$, and $w(t)$ is white noise of unit intensity,
+
+\[
+E\{w(t)w(\tau)^T\} = I\,\delta(t-\tau)
+\]
+
+\bigskip
+\noindent The proof proceeds in four steps.
+
+\section*{Step 1: Scalar quadratic form as a trace}
+
+For any real vector $v \in \mathbb{R}^n$,
+\[
+v^Tv = \sum_i v_i^2 = \operatorname{tr}(vv^T),
+\]
+since $vv^T$ is the matrix with $(vv^T)_{ii} = v_i^2$, and the trace sums the diagonal entries. Applying this with $v = z(t)$:
+\[
+z(t)^Tz(t) = \operatorname{tr}\big(z(t)z(t)^T\big).
+\]
+
+\section*{Step 2: Trace commutes with time-average and expectation}
+
+The trace operator, the time-integral, and the expectation $E\{\cdot\}$ are all linear operators, hence they commute with one another. Substituting Step 1 into the left-hand side of (9.31):
+\[
+E\left\{\lim_{T\to\infty}\frac{1}{2T}\int_{-T}^{T} z(t)^Tz(t)\,dt\right\}
+= E\left\{\lim_{T\to\infty}\frac{1}{2T}\int_{-T}^{T} \operatorname{tr}\big(z(t)z(t)^T\big)\,dt\right\}.
+\]
+Pulling $\operatorname{tr}(\cdot)$ outside the (linear) time-average and expectation:
+\[
+= \operatorname{tr}\left(E\left\{\lim_{T\to\infty}\frac{1}{2T}\int_{-T}^{T} z(t)z(t)^T\,dt\right\}\right).
+\]
+
+\section*{Step 3: Ergodicity collapses the time average to the ensemble average}
+
+Since $z(t) = F(s)w(t)$ is the output of a stable LTI system driven by stationary white noise, $z(t)$ is a stationary stochastic process. For such processes the ergodic theorem states that the time average of a (sufficiently well-behaved) function of the process equals its ensemble average with probability one:
+\[
+\lim_{T\to\infty}\frac{1}{2T}\int_{-T}^{T} z(t)z(t)^T\,dt = E\{z(t)z(t)^T\} \quad \text{(a deterministic matrix, independent of } t\text{)}.
+\]
+Substituting this in:
+\[
+\operatorname{tr}\left(E\Big\{\underbrace{E\{z(t)z(t)^T\}}_{\text{already deterministic}}\Big\}\right) = \operatorname{tr}\, E\{z(t)z(t)^T\},
+\]
+since applying $E\{\cdot\}$ to an already-deterministic quantity leaves it unchanged. This establishes the first equality in (9.31):
+\[
+E\left\{\lim_{T\to\infty}\frac{1}{2T}\int_{-T}^{T} z(t)^Tz(t)\,dt\right\} = \operatorname{tr}\, E\{z(t)z(t)^T\}.
+\]
+
+\section*{Step 4: Introducing the system dynamics and Parseval's theorem}
+
+\subsection*{4.1 Express $z$ as a convolution}
+
+Let $f(\theta)$ denote the impulse response matrix of the stable system $F(s)$. Then
+\[
+z(t) = \int_0^\infty f(\theta_1)\,w(t-\theta_1)\,d\theta_1.
+\]
+
+\subsection*{4.2 Compute $E\{z(t)z(t)^T\}$}
+
+\[
+E\{z(t)z(t)^T\}
+= E\left\{\int_0^\infty f(\theta_1)w(t-\theta_1)\,d\theta_1 \int_0^\infty w(t-\theta_2)^Tf(\theta_2)^T\,d\theta_2\right\}.
+\]
+Moving $E\{\cdot\}$ inside the (linear) double integral:
+\[
+= \int_0^\infty\!\!\int_0^\infty f(\theta_1)\,E\{w(t-\theta_1)w(t-\theta_2)^T\}\,f(\theta_2)^T\,d\theta_1\,d\theta_2.
+\]
+By the white-noise property (9.30), with $\tau_1 = t-\theta_1,\ \tau_2 = t-\theta_2$:
+\[
+E\{w(t-\theta_1)w(t-\theta_2)^T\} = I\,\delta\big((t-\theta_1)-(t-\theta_2)\big) = I\,\delta(\theta_2-\theta_1).
+\]
+Substituting and using the sifting property of the Dirac delta, $\int_0^\infty g(\theta_2)\,\delta(\theta_2-\theta_1)\,d\theta_2 = g(\theta_1)$, the double integral collapses to a single integral:
+\[
+E\{z(t)z(t)^T\} = \int_0^\infty f(\theta_1)f(\theta_1)^T\,d\theta_1 = \int_0^\infty f(\theta)f(\theta)^T\,d\theta.
+\]
+
+\subsection*{4.3 Apply the trace}
+
+\[
+\operatorname{tr}\,E\{z(t)z(t)^T\} = \operatorname{tr}\int_0^\infty f(\theta)f(\theta)^T\,d\theta = \int_0^\infty \operatorname{tr}\big(f(\theta)f(\theta)^T\big)\,d\theta,
+\]
+using linearity of trace to move it inside the integral.
+
+\subsection*{4.4 Identify the $H_2$ norm and apply Parseval's theorem}
+
+By the cyclic property of trace, $\operatorname{tr}(AB) = \operatorname{tr}(BA)$, applied with $A = f(\theta)$ and $B = f(\theta)^T$:
+\[
+\operatorname{tr}\big(f(\theta)f(\theta)^T\big) = \operatorname{tr}\big(f(\theta)^Tf(\theta)\big),
+\]
+so the integral matches the definition of the (squared) $H_2$ norm of the impulse response,
+\[
+\int_0^\infty \operatorname{tr}\big(f(\theta)^Tf(\theta)\big)\,d\theta = \|F\|_2^2.
+\]
+By Parseval's theorem, this time-domain integral equals the corresponding frequency-domain integral:
+\[
+\int_0^\infty \operatorname{tr}\big(f(\theta)f(\theta)^T\big)\,d\theta
+= \frac{1}{2\pi}\int_{-\infty}^{\infty} \operatorname{tr}\big[F(j\omega)F(j\omega)^H\big]\,d\omega.
+\]
+
+\section*{Conclusion}
+
+Combining Steps 1--4:
+\[
+E\left\{\lim_{T\to\infty}\frac{1}{2T}\int_{-T}^{T} z(t)^Tz(t)\,dt\right\}
+= \operatorname{tr}\,E\{z(t)z(t)^T\}
+= \frac{1}{2\pi}\int_{-\infty}^{\infty}\operatorname{tr}\big[F(j\omega)F(j\omega)^H\big]\,d\omega
+= \|F\|_2^2,
+\]
+which is precisely equation (9.31). $\blacksquare$
