@@ -28,7 +28,7 @@ Determinant of the above matrix is computed, which upon solving for $s$ gives th
 
 Matlab implementation of the above procedure is given in the code snippet below. The function \texttt{getZeros} takes the state space matrices $A$, $B$, $C$, and $D$ as input and returns the system zeros.
 
-\begin{minted}[frame=lines, linenos]{matlab} 
+\begin{lstlisting}
 function zero = getZeros(A, B, C, D)
     syms s; % Define symbolic variable
     n = size(A,1);
@@ -37,14 +37,10 @@ function zero = getZeros(A, B, C, D)
     zero = vpasolve(zero_eq, s); % Use vpasolve for numerical solutions
     zero = double(zero); % Convert symbolic results to double
 end
-\end{minted}
+\end{lstlisting}
 
-The above function can be compared with MATLAB's built-in \texttt{tzero} function. 
-
-\begin{minted}[mathescape,
-               linenos,
-               frame=lines,
-               framesep=2mm]{matlab}
+The above function can be compared with MATLAB's built-in \texttt{tzero} function.
+\begin{lstlisting}
 p = 4; % input size
 m = p; % output size
 s = tf('s');
@@ -55,10 +51,12 @@ z1 = getZeros(A, B, C, D);
 z2 = tzero(sys);
 z1 = sort(z1(:));
 z2 = sort(z2(:));
-assert(numel(z1) == numel(z2) && all(abs(z1 - z2) < 1e-6), ...
-    'getZeros and tzero do not match within tolerance');
-disp('getZeros and tzero match within tolerance');
-\end{minted}
+\end{lstlisting}
+
+% assert(numel(z1) == numel(z2) && all(abs(z1 - z2) < 1e-6), ...
+%     'getZeros and tzero do not match within tolerance');
+% disp('getZeros and tzero match within tolerance');
+
 
 
 \section{Transfer Function}
