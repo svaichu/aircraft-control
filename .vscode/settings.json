@@ -1,0 +1,5 @@
+{
+    "latex-workshop.formatting.latex": "latexindent",
+    "workbench.experimental.modernUI": false,
+    "breadcrumbs.showEditorType": false
+}

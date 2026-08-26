@@ -1,0 +1,9 @@
+[project]
+name = "aircraft-control"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "jupyter-matlab-proxy>=0.19.1",
+]

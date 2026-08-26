@@ -1,0 +1,21 @@
+Youla Parameterization
+
+We are given a plant 
+
+\[
+    G(s) = \frac{s-1}{s^3 + s^2 - 4s - 4},
+\]
+which has a zero at $s=1$ and poles at $s=-2,\,s=-1,\,s=2$.
+
+\begin{lstlisting}
+s = tf('s');
+G = (s-1)/(s^3 + s^2 - 4*s - 4);
+
+[A, B, C, D] = tf2ss(G.num{1}, G.den{1});
+\end{lstlisting}
+
+Now, letscreate a F controller 
+
+\[
+    F = -place(A, B, [-2, -1, 2]);
+\]
