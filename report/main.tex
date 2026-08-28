@@ -35,6 +35,23 @@
 % \usepackage{titlesec}
 \usepackage{url}
 
+%% hyperref must be loaded (nearly) last: it makes the ToC, cross-references,
+%% citations and the PDF sidebar outline clickable.
+\usepackage[
+    colorlinks=true,
+    linkcolor=black,      % internal links: ToC, sections, figures, equations
+    citecolor=black,      % \cite links
+    urlcolor=blue,        % \url / \href
+    linktoc=all,          % both the number and the text in the ToC are links
+    bookmarks=true,
+    bookmarksnumbered=true,
+    bookmarksopen=true,
+    bookmarksopenlevel=1,
+    pdfauthor={Vaishnavahari Seenivasan},
+    pdftitle={Multivariable Control Problems}
+]{hyperref}
+\usepackage{bookmark}     % more robust PDF outline handling
+
 \lstset{
     language=Matlab,
     frame=lines,
@@ -103,11 +120,10 @@ This is a template for the coursework report of the Advanced Control Systems lec
 \chapter{System Analysis}
 \input{1_system_analysis.tex}
 
-\chapter{Norm Equivalence}
-\input{2_norm_equivalence.tex}
-
-\chapter{Youla parameterization}
-\input{2_syszero_youla.tex}
+\chapter{MIMO-systems}
+\input{2_1_norm_equivalence.tex}
+\input{2_2_syszero.tex}
+\input{2_3_youla.tex}
 
 \chapter{References}
 Please use the bibtex library file called literature.bib in main folder of this template. A simple tool to manage your references is JabRef. Note that there are differences between Books~\cite{Sko05}, Journal articles~\cite{Rue14} and contributions to Conferences~\cite{Mis13}.
