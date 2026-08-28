@@ -18,7 +18,6 @@ function [zerosOut, zeroPoly, polePoly] = zeroRectangleTf(G)
 %   order-r ones; using only the order-r minors loses the poles that cancel
 %   inside the large minors and corrupts z(s) as well.
 
-    G = sym(G);
     v = mainVariable(G);
 
     r = rank(G);

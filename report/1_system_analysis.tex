@@ -1,64 +1,1050 @@
+% Task 1 -- Section 2.1 of the assignment (System analysis)
+% Chapter heading is provided by main.tex
 
-\section{System Analysis}
+This task is concerned with the analysis of multivariable systems. Three questions are
+answered: the computation of the zeros of a square MIMO system from its state-space
+representation (Sec.~\ref{sec:zeros1}), the computation of the zeros of a non-square MIMO
+system (Sec.~\ref{sec:zeros2}), and the assessment of internal stability together with the
+stability margins of a perturbed closed loop (Sec.~\ref{sec:perturbation}). In accordance with
+the assignment, no function of the Control System Toolbox is used inside the developed
+procedures; the toolbox is used exclusively to \emph{verify} the results afterwards. All
+procedures are implemented in MATLAB and rely on the Symbolic Math Toolbox or on plain
+LAPACK-based linear algebra only.
 
-Task: Find zeros of a given MIMO system for two cases:
-\begin{itemize}
-    \item Number of inputs is equal to the number of outputs.
-    \item Number of inputs is not equal to the number of outputs.
-\end{itemize}
-Either case, MATLAB's control system toolbox or python's control library are not used.
+\section{System zeros: Part I -- square systems}
+\label{sec:zeros1}
 
-\subsection{State space}
+\subsection{Zeros of a multivariable system}
 
-When the system is given in the state space form, Rosenbrock-matrix is used.
+For a SISO system a zero is simply a root of the numerator polynomial. In the multivariable
+case this definition is no longer sufficient, because a transfer matrix $\mathbf{G}(s)$ can lose
+rank at a frequency at which none of its entries vanishes. The generalisation used throughout
+this coursework is the \emph{blocking property}: a complex number $z$ is a zero of the system if
+there exists a non-zero input direction that is completely blocked by the system, i.e.\ that
+produces an identically vanishing output.
 
+Let the system be given by a state-space realisation of order $n$ with $p$ inputs and $m$
+outputs,
 \begin{equation}
-    P(s) = \begin{bmatrix}
-        sI - A & -B \\ C & D
+    \dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t), \qquad
+    \mathbf{y}(t) = \mathbf{C}\mathbf{x}(t) + \mathbf{D}\mathbf{u}(t),
+    \label{eq:statespace}
+\end{equation}
+with $\mathbf{A}\in\mathbb{R}^{n\times n}$, $\mathbf{B}\in\mathbb{R}^{n\times p}$,
+$\mathbf{C}\in\mathbb{R}^{m\times n}$ and $\mathbf{D}\in\mathbb{R}^{m\times p}$. Following the
+hint of the assignment, the analysis is carried out on the Rosenbrock system matrix
+\begin{equation}
+    \mathbf{P}(s) =
+    \begin{bmatrix}
+        s\mathbf{I}-\mathbf{A} & -\mathbf{B} \\[2pt]
+        \mathbf{C}             &  \mathbf{D}
     \end{bmatrix}
+    \;\in\; \mathbb{R}^{(n+m)\times(n+p)}[s].
     \label{eq:rosenbrock}
 \end{equation}
+In this section the square case $p=m\geq 2$ is treated, so that $\mathbf{P}(s)$ is a square
+polynomial matrix of dimension $(n+p)\times(n+p)$.
 
-Determinant of the above matrix is computed, which upon solving for $s$ gives the system zeros.
+\subsection{Definition of the zeros and the Rosenbrock determinant}
 
-\begin{align*}
-    \text{det}(P(s)) &= 0 \\
-    (sI - A)(D) - (-B)(C) &= 0 \\
-\end{align*}
+\paragraph{Invariant zeros.} A complex number $z$ is an \emph{invariant zero} of the realisation
+$(\mathbf{A},\mathbf{B},\mathbf{C},\mathbf{D})$ if the rank of $\mathbf{P}(s)$ drops at $s=z$,
+\begin{equation}
+    \operatorname{rank}\mathbf{P}(z) \;<\; \max_{s\in\mathbb{C}}\operatorname{rank}\mathbf{P}(s)
+    \;=:\; r_{\mathbf{P}} .
+    \label{eq:invariantzero}
+\end{equation}
+For a square $\mathbf{P}(s)$ with $\det\mathbf{P}(s)\not\equiv 0$ the normal rank is
+$r_{\mathbf{P}}=n+p$, and condition~\eqref{eq:invariantzero} is equivalent to the much more
+convenient scalar condition
+\begin{equation}
+    \det\mathbf{P}(z) = 0 .
+    \label{eq:detcondition}
+\end{equation}
+This is the property that the implemented procedure exploits.
 
-Matlab implementation of the above procedure is given in the code snippet below. The function \texttt{getZeros} takes the state space matrices $A$, $B$, $C$, and $D$ as input and returns the system zeros.
+\paragraph{Relation to the transfer matrix.} The connection between~\eqref{eq:detcondition} and
+the transfer matrix $\mathbf{G}(s)=\mathbf{C}(s\mathbf{I}-\mathbf{A})^{-1}\mathbf{B}+\mathbf{D}$
+follows from the Schur complement of the block $s\mathbf{I}-\mathbf{A}$. For any $s$ that is not
+an eigenvalue of $\mathbf{A}$,
+\begin{equation}
+    \det\mathbf{P}(s)
+    = \det(s\mathbf{I}-\mathbf{A})\cdot
+      \det\!\big(\mathbf{D}+\mathbf{C}(s\mathbf{I}-\mathbf{A})^{-1}\mathbf{B}\big)
+    = \det(s\mathbf{I}-\mathbf{A})\cdot\det\mathbf{G}(s).
+    \label{eq:schur}
+\end{equation}
+Equation~\eqref{eq:schur} is the key identity of this section and should be contrasted with the
+naive block expansion $\det \mathbf{P} = \det\big((s\mathbf{I}-\mathbf{A})\mathbf{D}
++\mathbf{B}\mathbf{C}\big)$, which is \emph{not} valid because the blocks do not commute.
 
-\begin{lstlisting}
-function zero = getZeros(A, B, C, D)
-    syms s; % Define symbolic variable
+\paragraph{Nomenclature -- which zeros are computed?} Identity~\eqref{eq:schur} answers the
+question posed in the assignment. The roots of $\det\mathbf{P}(s)$ are the \emph{invariant
+zeros} of the particular realisation that was handed to the algorithm. They decompose as
+\begin{equation}
+    \{\text{invariant zeros}\} \;=\;
+    \{\text{transmission zeros}\} \;\cup\; \{\text{decoupling zeros}\},
+    \label{eq:zerodecomposition}
+\end{equation}
+where the decoupling zeros are the uncontrollable and unobservable modes of the realisation. If
+and only if the realisation is minimal is $\det(s\mathbf{I}-\mathbf{A})$ equal to the pole
+polynomial of $\mathbf{G}(s)$; all its factors are then cancelled by the poles of
+$\det\mathbf{G}(s)$ in~\eqref{eq:schur}, and the invariant zeros coincide with the
+\emph{transmission zeros} (also called system zeros) of $\mathbf{G}(s)$. Since the assignment
+explicitly states that the realisation is not necessarily minimal, the procedure returns
+invariant zeros, and a minimal realisation has to be used if the transmission zeros are wanted.
+A numerical demonstration of this distinction is given in Sec.~\ref{sec:invvstrans}.
+
+\subsection{Implementation}
+
+The procedure implements~\eqref{eq:detcondition} directly: the Rosenbrock matrix is assembled
+symbolically, its determinant is evaluated, and the resulting polynomial is solved for $s$. Only
+the Symbolic Math Toolbox is used.
+
+\begin{lstlisting}[caption={\texttt{getZeros.m} -- invariant zeros of a square system},captionpos=b]
+function zeros = getZeros(A, B, C, D)
+    syms s;                                     % symbolic variable
     n = size(A,1);
-    M = [s*eye(n)-A, -B; C, D];
-    zero_eq = det(M); % Compute determinant symbolically
-    zero = vpasolve(zero_eq, s); % Use vpasolve for numerical solutions
-    zero = double(zero); % Convert symbolic results to double
+    Rosenbrock_Matrix = [s*eye(n)-A, -B; C, D]; % Eq. (1.2)
+    zero_eq = det(Rosenbrock_Matrix);           % Eq. (1.5)
+    zeros = vpasolve(zero_eq, s);               % numerical roots
+    zeros = double(zeros);
 end
 \end{lstlisting}
 
-The above function can be compared with MATLAB's built-in \texttt{tzero} function.
-\begin{lstlisting}
-p = 4; % input size
-m = p; % output size
-s = tf('s');
-sys = rss(6, m, p);
-A = sys.A; B = sys.B; C = sys.C; D = sys.D;
+\paragraph{A numerically robust variant.} Forming a symbolic determinant and rooting the
+resulting polynomial is exact, but polynomial root finding is notoriously ill-conditioned for
+higher orders. The numerically preferable formulation avoids the determinant altogether by
+writing~\eqref{eq:rosenbrock} as a matrix pencil,
+\begin{equation}
+    \mathbf{P}(s) \;\hat{=}\; s\mathbf{M}-\mathbf{L}, \qquad
+    \mathbf{L}=\begin{bmatrix}\mathbf{A}&\mathbf{B}\\ \mathbf{C}&\mathbf{D}\end{bmatrix},\qquad
+    \mathbf{M}=\begin{bmatrix}\mathbf{I}&\mathbf{0}\\ \mathbf{0}&\mathbf{0}\end{bmatrix},
+    \label{eq:pencil}
+\end{equation}
+which differs from~\eqref{eq:rosenbrock} only by a sign of the lower block row and therefore has
+the same rank-deficiency structure. The invariant zeros are exactly the \emph{finite}
+generalised eigenvalues of the pair $(\mathbf{L},\mathbf{M})$; the infinite ones correspond to
+the rank deficiency of $\mathbf{D}$. They are obtained with the backward-stable QZ algorithm:
 
-z1 = getZeros(A, B, C, D);
-z2 = tzero(sys);
-z1 = sort(z1(:));
-z2 = sort(z2(:));
+\begin{lstlisting}[caption={Pencil formulation of the same problem},captionpos=b]
+function z = getZerosQZ(A, B, C, D)
+    n = size(A,1); [p, m] = size(D);
+    L = [A B; C D];
+    M = blkdiag(eye(n), zeros(p, m));   % Eq. (1.8)
+    z = eig(L, M);                      % QZ algorithm
+    z = z(isfinite(z) & abs(z) < 1e8);  % discard the zeros at infinity
+end
 \end{lstlisting}
 
-% assert(numel(z1) == numel(z2) && all(abs(z1 - z2) < 1e-6), ...
-%     'getZeros and tzero do not match within tolerance');
-% disp('getZeros and tzero match within tolerance');
+Both routines were tested against the built-in \texttt{tzero} on randomly generated systems
+(\texttt{rss}). For a $6$th-order system with $p=m=4$ and for a $12$th-order system with
+$p=m=3$ the largest deviation from \texttt{tzero} was $2.5\cdot10^{-14}$ and
+$3.8\cdot10^{-14}$ for the symbolic routine and $6.4\cdot10^{-14}$ and $1.5\cdot10^{-13}$ for
+the pencil formulation, i.e.\ both agree with the toolbox to machine precision.
 
+\subsection{Initial state and input direction of a zero}
+\label{sec:directions}
 
+Part (b) of the assignment asks for the initial state $\mathbf{x}_0$ and the input vector
+$\mathbf{u}_0$ that belong to a computed zero. They are precisely the null space of the
+Rosenbrock matrix evaluated at the zero. Let $z$ be an invariant zero, then by
+definition~\eqref{eq:invariantzero} there exists a non-trivial vector such that
+\begin{equation}
+    \begin{bmatrix}
+        z\mathbf{I}-\mathbf{A} & -\mathbf{B} \\ \mathbf{C} & \mathbf{D}
+    \end{bmatrix}
+    \begin{bmatrix}\mathbf{x}_0\\ \mathbf{u}_0\end{bmatrix} = \mathbf{0}
+    \qquad\Longleftrightarrow\qquad
+    \begin{cases}
+        (z\mathbf{I}-\mathbf{A})\,\mathbf{x}_0 = \mathbf{B}\,\mathbf{u}_0, \\[2pt]
+        \mathbf{C}\,\mathbf{x}_0 + \mathbf{D}\,\mathbf{u}_0 = \mathbf{0} .
+    \end{cases}
+    \label{eq:zerodirection}
+\end{equation}
+The vector $\mathbf{x}_0$ is called the state zero direction and $\mathbf{u}_0$ the input zero
+direction. Their meaning is the blocking property announced above. Choosing the exponential
+input and the matching initial state
+\begin{equation}
+    \mathbf{u}(t) = \mathbf{u}_0\,e^{zt}, \qquad \mathbf{x}(t=0)=\mathbf{x}_0 ,
+    \label{eq:blockinginput}
+\end{equation}
+the state trajectory is $\mathbf{x}(t)=\mathbf{x}_0e^{zt}$, since substitution into the state
+equation~\eqref{eq:statespace} gives
+$z\mathbf{x}_0e^{zt} = \mathbf{A}\mathbf{x}_0e^{zt}+\mathbf{B}\mathbf{u}_0e^{zt}$, which is the
+first line of~\eqref{eq:zerodirection}. The output then follows as
+\begin{equation}
+    \mathbf{y}(t) = \big(\mathbf{C}\mathbf{x}_0+\mathbf{D}\mathbf{u}_0\big)e^{zt}
+    \;\overset{\eqref{eq:zerodirection}}{=}\;\mathbf{0}\qquad \forall\, t\geq 0 .
+    \label{eq:blocked}
+\end{equation}
+The signal $\mathbf{u}_0e^{zt}$ is therefore transmitted into the state but never reaches the
+output -- the system blocks it completely. In MATLAB the directions are obtained with
+\texttt{null([z*eye(n)-A, -B; C, D])}, which requires no toolbox at all.
 
-\section{Transfer Function}
+\subsection{Invariant zeros versus transmission zeros -- a numerical illustration}
+\label{sec:invvstrans}
 
-We maynot be always be able to find determinant of the Rosenbrock matrix, especially when the number of inputs is not equal to the number of outputs. In such cases, we can use the transfer function representation of the system to find the zeros.
+Before the required example is treated, the effect of a non-minimal realisation is demonstrated,
+because the assignment explicitly allows such a realisation. Consider
+\begin{equation}
+    \mathbf{G}(s) = \begin{bmatrix}
+        \dfrac{s+2}{s^2+3s+2} & \dfrac{1}{s+1}\\[10pt]
+        \dfrac{s+4}{s^2+5s+6} & \dfrac{s+3}{s+2}
+    \end{bmatrix}.
+    \label{eq:illustration}
+\end{equation}
+The realisation delivered by a naive entry-wise construction has $n=6$ states, although the
+McMillan degree of~\eqref{eq:illustration} is only $3$. Applying \texttt{getZeros} to it gives
+\begin{lstlisting}
+sys = ss(G);                            % 6 states, not minimal
+sort(getZeros(sys.A, sys.B, sys.C, sys.D))'
+sysm = minreal(sys);                    % 3 states, minimal
+sort(getZeros(sysm.A, sysm.B, sysm.C, sysm.D))'
+\end{lstlisting}
+\begin{lstlisting}[style=matlabout]
+ans =   -3.6180   -2.0000   -2.0000   -1.3820   -1.0000     % invariant zeros (n = 6)
+ans =   -3.6180   -1.3820                                   % transmission zeros (n = 3)
+\end{lstlisting}
+The symbolic determinant of the non-minimal realisation factorises as
+\begin{equation}
+    \det\mathbf{P}(s) = (s+2)^2\,(s+1)\,(s^2+5s+5),
+    \label{eq:illustrationdet}
+\end{equation}
+whose last factor carries the two transmission zeros $-3.6180$ and $-1.3820$, while
+$(s+2)^2(s+1)$ collects the three decoupling zeros that are removed by \texttt{minreal}. This
+confirms the decomposition~\eqref{eq:zerodecomposition} and shows that the algorithm must always
+be fed a minimal realisation if the transmission zeros are of interest.
+
+\subsection{Required example}
+\label{sec:example211}
+
+The system given in the assignment is
+\begin{equation}
+    \mathbf{G}(s) = \begin{bmatrix}
+        \dfrac{1}{s} & \dfrac{1}{s(s+1)}\\[10pt]
+        \dfrac{1}{s+1} & \dfrac{1}{s+1}
+    \end{bmatrix}
+    = \frac{1}{s(s+1)}\begin{bmatrix} s+1 & 1\\ s & s\end{bmatrix}
+    = \frac{1}{d(s)}\mathbf{N}(s).
+    \label{eq:ex211}
+\end{equation}
+
+\paragraph{Analytical prediction.} The determinant of~\eqref{eq:ex211} is
+\begin{equation}
+    \det\mathbf{G}(s) = \frac{s(s+1)-s}{s^2(s+1)^2} = \frac{s^2}{s^2(s+1)^2}
+    = \frac{1}{(s+1)^2}.
+    \label{eq:detG211}
+\end{equation}
+The Smith form of the numerator matrix $\mathbf{N}(s)$ has the invariant factors
+$\varepsilon_1=1$ (the entries of $\mathbf{N}$ have no common factor) and
+$\varepsilon_2=\det\mathbf{N}(s)/\varepsilon_1 = s^2$, so that the Smith--McMillan form
+of~\eqref{eq:ex211} reads
+\begin{equation}
+    \mathbf{M}(s) = \operatorname{diag}\!\left(\frac{1}{s(s+1)},\ \frac{s}{s+1}\right),
+    \qquad
+    z(s) = s, \qquad p(s) = s(s+1)^2 .
+    \label{eq:sm211}
+\end{equation}
+The system therefore possesses exactly one transmission zero at $z=0$, and its McMillan degree
+-- the order of any minimal realisation -- is $\deg p(s) = 3$.
+
+\paragraph{Minimal state-space realisation.} A minimal realisation is constructed by partial
+fraction expansion of~\eqref{eq:ex211} into its residue (dyadic) form,
+\begin{equation}
+    \mathbf{G}(s) = \frac{\mathbf{R}_0}{s} + \frac{\mathbf{R}_1}{s+1},\qquad
+    \mathbf{R}_0 = \begin{bmatrix}1&1\\0&0\end{bmatrix},\qquad
+    \mathbf{R}_1 = \begin{bmatrix}0&-1\\1&1\end{bmatrix},
+    \label{eq:residues211}
+\end{equation}
+with $\operatorname{rank}\mathbf{R}_0=1$ and $\operatorname{rank}\mathbf{R}_1=2$. The number of
+states attached to a pole equals the rank of its residue matrix, which again yields
+$n = 1+2 = 3$ and confirms~\eqref{eq:sm211}. Factorising
+$\mathbf{R}_0=\mathbf{c}_0\mathbf{b}_0^T$ with $\mathbf{c}_0=[1\ \ 0]^T$,
+$\mathbf{b}_0^T=[1\ \ 1]$ and $\mathbf{R}_1=\mathbf{I}_2\mathbf{R}_1$ gives the modal minimal
+realisation
+\begin{equation}
+    \mathbf{A}=\begin{bmatrix}0&0&0\\0&-1&0\\0&0&-1\end{bmatrix},\quad
+    \mathbf{B}=\begin{bmatrix}1&1\\0&-1\\1&1\end{bmatrix},\quad
+    \mathbf{C}=\begin{bmatrix}1&1&0\\0&0&1\end{bmatrix},\quad
+    \mathbf{D}=\begin{bmatrix}0&0\\0&0\end{bmatrix}.
+    \label{eq:minreal211}
+\end{equation}
+Minimality was verified through the Kalman rank conditions,
+$\operatorname{rank}\mathcal{C}(\mathbf{A},\mathbf{B})
+=\operatorname{rank}\mathcal{O}(\mathbf{A},\mathbf{C})=3=n$, and the realisation reproduces
+$\mathbf{G}(s)$ of~\eqref{eq:ex211} exactly (the frequency responses agree to the last bit).
+
+\paragraph{Zeros.} With~\eqref{eq:minreal211} the Rosenbrock matrix is of dimension $5\times5$
+and its symbolic determinant evaluates to
+\begin{equation}
+    \det\mathbf{P}(s) = \det(s\mathbf{I}-\mathbf{A})\cdot\det\mathbf{G}(s)
+    = s(s+1)^2\cdot\frac{1}{(s+1)^2} = s ,
+    \label{eq:detP211}
+\end{equation}
+in perfect agreement with the zero polynomial $z(s)=s$ predicted in~\eqref{eq:sm211}. The
+implementation returns
+
+\begin{lstlisting}
+A = [0 0 0; 0 -1 0; 0 0 -1];  B = [1 1; 0 -1; 1 1];
+C = [1 1 0; 0 0 1];           D = zeros(2,2);
+getZeros(A, B, C, D)          % own procedure
+tzero(ss(A,B,C,D))            % Control System Toolbox, for verification only
+\end{lstlisting}
+\begin{lstlisting}[style=matlabout]
+ans =     0                    % own procedure
+ans =     8.3242e-17           % tzero
+\end{lstlisting}
+
+\noindent so the system has a single transmission zero at $z=0$; the own procedure even returns
+it exactly, whereas the toolbox delivers it with the round-off of a floating-point algorithm.
+
+\paragraph{Initial state and input vector.} Evaluating the Rosenbrock matrix at $z=0$ gives
+\begin{equation}
+    \mathbf{P}(0)=
+    \begin{bmatrix}
+        0&0&0&-1&-1\\
+        0&1&0& 0& 1\\
+        0&0&1&-1&-1\\
+        1&1&0& 0& 0\\
+        0&0&1& 0& 0
+    \end{bmatrix},
+    \qquad \operatorname{rank}\mathbf{P}(0)=4<5=r_{\mathbf{P}} ,
+    \label{eq:P0}
+\end{equation}
+where the normal rank $r_{\mathbf{P}}=5$ was confirmed at the generic point $s=2$. The
+one-dimensional null space of~\eqref{eq:P0} yields the zero directions
+\begin{equation}
+    \mathbf{x}_0 = \begin{bmatrix}-1\\ 1\\ 0\end{bmatrix},
+    \qquad
+    \mathbf{u}_0 = \begin{bmatrix}1\\ -1\end{bmatrix}.
+    \label{eq:dir211}
+\end{equation}
+Because $z=0$, the blocking input~\eqref{eq:blockinginput} is the constant vector
+$\mathbf{u}(t)=[1\ \ -1]^T$. The result is easily checked by hand:
+\begin{equation}
+    \mathbf{A}\mathbf{x}_0+\mathbf{B}\mathbf{u}_0
+    = \begin{bmatrix}0\\-1\\0\end{bmatrix}+\begin{bmatrix}0\\1\\0\end{bmatrix}
+    = \mathbf{0},
+    \qquad
+    \mathbf{y} = \mathbf{C}\mathbf{x}_0 = \begin{bmatrix}-1+1\\ 0\end{bmatrix}=\mathbf{0},
+    \label{eq:check211}
+\end{equation}
+i.e.\ the state remains frozen at $\mathbf{x}_0$ and the output is identically zero for all
+times, although a non-zero input is permanently applied.
+
+\subsection{Discussion and conclusion}
+
+The Rosenbrock matrix reduces the multivariable zero problem to a single scalar condition,
+$\det\mathbf{P}(s)=0$, as long as the system is square. Identity~\eqref{eq:schur} shows that this
+determinant is the product of the characteristic polynomial of the realisation and the
+determinant of the transfer matrix; consequently the computed quantities are the invariant zeros
+of the realisation, which coincide with the transmission zeros only for a minimal realisation.
+The illustration of Sec.~\ref{sec:invvstrans} shows how badly this matters in practice: a
+perfectly valid realisation of order $6$ produced three spurious zeros.
+
+For the required example the analysis via the Smith--McMillan form and the numerical procedure
+agree exactly: one transmission zero at $z=0$, McMillan degree $3$. It is worth noting that this
+zero coincides with a pole of $\mathbf{G}(s)$ at $s=0$ (the pole polynomial is $s(s+1)^2$).
+There is no contradiction and no cancellation, because pole and zero act in different
+directions: the pole at $s=0$ is excited in the input direction $[1\ \ 0]^T$, whereas the
+zero blocks the direction $\mathbf{u}_0=[1\ \ -1]^T$. This is a genuinely multivariable
+phenomenon that has no SISO counterpart, and it is also the reason why the frequently used
+shortcut ``$\mathbf{G}(z)$ loses rank'' fails here -- $\mathbf{G}(0)$ does not even exist. The
+rank test on $\mathbf{P}(s)$ is unaffected by this and is therefore the definition of choice.
+
+\section{System zeros: Part II -- non-square systems}
+\label{sec:zeros2}
+
+\subsection{Why the determinant approach breaks down}
+
+If the number of inputs differs from the number of outputs, $p\neq m$, the Rosenbrock
+matrix~\eqref{eq:rosenbrock} is of dimension $(n+m)\times(n+p)$ and is therefore rectangular. Its
+determinant does not exist and the criterion~\eqref{eq:detcondition} cannot be used; only the
+rank definition~\eqref{eq:invariantzero} survives,
+\begin{equation}
+    z \text{ is an invariant zero}
+    \quad\Longleftrightarrow\quad
+    \operatorname{rank}\mathbf{P}(z) < r_{\mathbf{P}} = \max_{s}\operatorname{rank}\mathbf{P}(s).
+    \label{eq:ranktest}
+\end{equation}
+A second difficulty appears for a ``fat'' system with more inputs than outputs, $p>m$. The
+matrix $\mathbf{P}(s)$ then has more columns than rows, so its null space is non-trivial at
+\emph{every} frequency: there is always an input direction that produces no output. Such a
+direction is not a zero. Only where the dimension of the null space \emph{increases} beyond its
+generic value does a zero occur. This distinction is worked out explicitly in
+Sec.~\ref{sec:directions212}.
+
+\subsection{Smith--McMillan approach}
+
+Instead of working on the state-space level, the zeros are computed from the transfer matrix
+using the Smith--McMillan form, cf.~\cite[Sec.~4.5]{Sko05}. Every rational matrix
+$\mathbf{G}(s)\in\mathbb{R}^{m\times p}(s)$ of normal rank $r$ can be brought to
+\begin{equation}
+    \mathbf{M}(s) = \mathbf{U}(s)\,\mathbf{G}(s)\,\mathbf{V}(s)
+    = \operatorname{diag}\!\left(
+      \frac{\varepsilon_1(s)}{\psi_1(s)},\dots,\frac{\varepsilon_r(s)}{\psi_r(s)},
+      0,\dots\right),
+    \label{eq:smithmcmillan}
+\end{equation}
+with unimodular $\mathbf{U}(s),\mathbf{V}(s)$, coprime pairs
+$(\varepsilon_i,\psi_i)$ and the divisibility properties
+$\varepsilon_i\mid\varepsilon_{i+1}$ and $\psi_{i+1}\mid\psi_i$. The zero and pole polynomials
+of the system are
+\begin{equation}
+    z(s) = \prod_{i=1}^{r}\varepsilon_i(s), \qquad
+    p(s) = \prod_{i=1}^{r}\psi_i(s),
+    \label{eq:zpolypoly}
+\end{equation}
+and the roots of $z(s)$ are the transmission zeros. Since the unimodular transformations
+in~\eqref{eq:smithmcmillan} are expensive and numerically delicate to construct, the equivalent
+characterisation through the minors of $\mathbf{G}(s)$ is used in the implementation:
+\begin{align}
+    p(s) &= \operatorname{lcm}\Big\{\text{denominators of all non-zero minors of }
+            \mathbf{G}(s)\text{ of order } 1,2,\dots,r \Big\},
+            \label{eq:polepoly}\\[4pt]
+    z(s) &= \operatorname{gcd}\Big\{\text{numerators of all minors of order } r,
+            \text{ each written with the denominator } p(s)\Big\}.
+            \label{eq:zeropoly}
+\end{align}
+Both polynomials are defined up to a non-zero constant only. Two details of~\eqref{eq:polepoly}
+and~\eqref{eq:zeropoly} are essential and are a frequent source of error:
+\begin{itemize}
+    \item the pole polynomial requires the minors of \emph{every} order $1\dots r$, not only
+          those of maximum order. Poles that cancel inside the large minors would otherwise be
+          lost, which in turn corrupts $z(s)$;
+    \item before the greatest common divisor is taken, each maximal minor has to be rewritten
+          over the common denominator $p(s)$, because the gcd of the numerators is only
+          meaningful for a common denominator.
+\end{itemize}
+
+\subsection{Implementation}
+
+The procedure is implemented symbolically, so that all gcd/lcm operations are carried out in
+exact rational arithmetic. A transfer function model is first converted to a symbolic matrix
+with the helper \texttt{tf2sym} (which deliberately does \emph{not} cancel pole/zero pairs inside
+an entry, since such a cancellation would destroy the pole polynomial).
+
+\begin{lstlisting}[caption={\texttt{zeroRectangleTf.m} -- main routine},captionpos=b]
+function [zerosOut, zeroPoly, polePoly] = zeroRectangleTf(G)
+    v = mainVariable(G);
+    r = rank(G);                        % normal rank of G(s)
+    if r == 0
+        zeroPoly = sym(1); polePoly = sym(1); zerosOut = sym.empty(0,1); return;
+    end
+
+    allMinors = sym.empty(0,1);
+    for k = 1:r                         % minors of every order 1..r
+        allMinors = [allMinors; getMinors(G, k)];
+    end
+    topMinors = getMinors(G, r);        % minors of maximum order
+
+    polePoly = lcdDenom(allMinors);              % Eq. (1.21)
+    zeroPoly = gcdNumAdjusted(topMinors, polePoly); % Eq. (1.22)
+
+    zerosOut = polyRoots(zeroPoly, v);
+end
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Rewriting the maximal minors over $p(s)$ before taking the gcd},captionpos=b]
+function gcdPoly = gcdNumAdjusted(minors, polePoly)
+    adjusted = sym.empty(0,1);
+    for k = 1:numel(minors)
+        [numPart, denPart] = numden(minors(k));
+        % polePoly is a common denominator, so polePoly/denPart is a polynomial
+        adjusted(end+1,1) = expand(simplify(numPart * polePoly / denPart));
+    end
+    gcdPoly = adjusted(1);
+    for k = 2:numel(adjusted)
+        gcdPoly = gcd(gcdPoly, adjusted(k));
+    end
+    gcdPoly = simplify(gcdPoly);
+end
+\end{lstlisting}
+
+\paragraph{Numerical properties.} The assignment asks for a numerically stable procedure. The
+implementation above achieves this by avoiding floating-point arithmetic altogether: the
+coefficients are rationalised on conversion, and gcd, lcm and the root computation are carried
+out exactly, so no round-off error can accumulate and no tolerance has to be chosen. The price
+is the combinatorial effort -- an $m\times p$ matrix of normal rank $r$ has
+$\sum_{k=1}^{r}\binom{m}{k}\binom{p}{k}$ minors -- which makes the routine attractive for
+analysis of small and moderately sized systems but not for large models. For large systems the
+appropriate alternative is a rank-revealing reduction of the pencil~\eqref{eq:pencil} to
+Kronecker (staircase) form by orthogonal transformations only, which is the algorithm
+underlying the built-in \texttt{tzero}; it is backward stable and extends the QZ approach of
+Sec.~\ref{sec:zeros1} to the rectangular case. Both routes were used here, the symbolic one for
+the exact structural result and \texttt{tzero} for verification.
+
+\subsection{Required example}
+
+The system given in the assignment is the $2\times3$ transfer matrix
+\begin{equation}
+    \mathbf{G}(s) = \frac{1}{(s+1)(s+2)(s-1)}
+    \begin{bmatrix}
+        (s-1)(s+2) & 0 & (s-1)^2\\
+        -(s+1)(s+2) & (s-1)(s+1) & (s-1)(s+1)
+    \end{bmatrix},
+    \label{eq:ex212}
+\end{equation}
+so $m=2$, $p=3$ and the normal rank is $r=2$. Cancelling the common factors entry-wise gives the
+more transparent form
+\begin{equation}
+    \mathbf{G}(s) =
+    \begin{bmatrix}
+        \dfrac{1}{s+1} & 0 & \dfrac{s-1}{(s+1)(s+2)}\\[10pt]
+        -\dfrac{1}{s-1} & \dfrac{1}{s+2} & \dfrac{1}{s+2}
+    \end{bmatrix}.
+    \label{eq:ex212simple}
+\end{equation}
+
+\paragraph{Minors.} The six minors of order $1$ are the entries of~\eqref{eq:ex212simple}; their
+denominators are $(s+1)$, $(s+1)(s+2)$, $(s-1)$ and $(s+2)$. The three minors of order $2$ are
+\begin{equation}
+    M_{12} = \frac{1}{(s+1)(s+2)},\qquad
+    M_{13} = \frac{2}{(s+1)(s+2)},\qquad
+    M_{23} = -\frac{s-1}{(s+1)(s+2)^2},
+    \label{eq:minors212}
+\end{equation}
+where $M_{ij}$ denotes the minor built from the columns $i$ and $j$. With~\eqref{eq:polepoly} the
+pole polynomial follows as the least common denominator of all of them,
+\begin{equation}
+    p(s) = (s+1)(s+2)^2(s-1),
+    \label{eq:polepoly212}
+\end{equation}
+of degree $4$, i.e.\ the McMillan degree of~\eqref{eq:ex212} is $4$. Rewriting the maximal minors
+over $p(s)$ yields the numerators $(s+2)(s-1)$, $2(s+2)(s-1)$ and $-(s-1)^2$, whose greatest
+common divisor is
+\begin{equation}
+    z(s) = s-1 .
+    \label{eq:zeropoly212}
+\end{equation}
+The corresponding Smith--McMillan form~\eqref{eq:smithmcmillan} is
+\begin{equation}
+    \mathbf{M}(s) = \begin{bmatrix}
+        \dfrac{1}{(s+1)(s+2)(s-1)} & 0 & 0\\[10pt]
+        0 & \dfrac{s-1}{s+2} & 0
+    \end{bmatrix},
+    \label{eq:sm212}
+\end{equation}
+which indeed satisfies $\varepsilon_1\mid\varepsilon_2$ and $\psi_2\mid\psi_1$ and reproduces
+$z(s)$ and $p(s)$ through~\eqref{eq:zpolypoly}. \emph{The system has a single transmission zero
+at $z=+1$, which lies in the right half plane.} The implementation confirms this:
+
+\begin{lstlisting}
+s  = tf('s');
+G  = [ (s-1)*(s+2), 0, (s-1)^2;
+      -(s+1)*(s+2), (s-1)*(s+1), (s-1)*(s+1) ]/((s+1)*(s+2)*(s-1));
+Gs = tf2sym(G, 's');
+[zeros, zeroPoly, polePoly] = zeroRectangleTf(Gs);
+\end{lstlisting}
+\begin{lstlisting}[style=matlabout]
+zeros    = 1
+zeroPoly = s - 1
+polePoly = [ s - 1, s + 2, s + 2, s + 1 ]
+\end{lstlisting}
+
+\paragraph{Minimal state-space realisation.} As in Sec.~\ref{sec:example211} a minimal
+realisation is built from the residues of~\eqref{eq:ex212simple},
+\begin{equation}
+    \mathbf{R}_{-1}=\begin{bmatrix}1&0&-2\\0&0&0\end{bmatrix},\quad
+    \mathbf{R}_{-2}=\begin{bmatrix}0&0&3\\0&1&1\end{bmatrix},\quad
+    \mathbf{R}_{+1}=\begin{bmatrix}0&0&0\\-1&0&0\end{bmatrix},
+    \label{eq:residues212}
+\end{equation}
+of ranks $1$, $2$ and $1$, which again sums up to the McMillan degree $n=4$
+of~\eqref{eq:polepoly212}. The resulting modal realisation is
+\begin{equation}
+    \mathbf{A}=\begin{bmatrix}-1&0&0&0\\0&-2&0&0\\0&0&-2&0\\0&0&0&1\end{bmatrix},\quad
+    \mathbf{B}=\begin{bmatrix}1&0&-2\\0&0&3\\0&1&1\\-1&0&0\end{bmatrix},\quad
+    \mathbf{C}=\begin{bmatrix}1&1&0&0\\0&0&1&1\end{bmatrix},\quad
+    \mathbf{D}=\mathbf{0}_{2\times3},
+    \label{eq:minreal212}
+\end{equation}
+with $\operatorname{rank}\mathcal{C}=\operatorname{rank}\mathcal{O}=4=n$, so the realisation is
+minimal, and its poles $\{-1,-2,-2,+1\}$ reproduce~\eqref{eq:polepoly212}.
+
+\paragraph{Rank test.} The Rosenbrock matrix of~\eqref{eq:minreal212} is of dimension
+$6\times7$. Its rank was evaluated on a grid of frequencies:
+\begin{center}
+\begin{tabular}{l|cccccccc}
+    $s$ & $-3$ & $-2$ & $-1.5$ & $-1$ & $0$ & $0.5$ & $\mathbf{1}$ & $2$\\\hline
+    $\operatorname{rank}\mathbf{P}(s)$ & 6 & 6 & 6 & 6 & 6 & 6 & $\mathbf{5}$ & 6
+\end{tabular}
+\end{center}
+The normal rank is $r_{\mathbf{P}}=6$ and the rank drops only at $s=1$, which by the
+criterion~\eqref{eq:ranktest} is the single invariant zero of the system -- exactly the
+transmission zero~\eqref{eq:zeropoly212} obtained from the transfer matrix, as it must be for a
+minimal realisation.
+
+\subsection{Initial state and input direction}
+\label{sec:directions212}
+
+For the fat system considered here the null space of $\mathbf{P}(s)$ is non-empty at every
+frequency. Computing it symbolically gives the generic (rational) blocking direction
+\begin{equation}
+    \begin{bmatrix}\mathbf{x}_0(s)\\ \mathbf{u}_0(s)\end{bmatrix}
+    = \begin{bmatrix}
+        -3/(s+2) & 3/(s+2) & -1/(s+2) & 1/(s+2) &
+        \big|\!\!\!\!& -(s-1)/(s+2) & -2 & 1
+      \end{bmatrix}^T ,
+    \label{eq:genericnull}
+\end{equation}
+which exists for all $s\neq -2$ and merely expresses the redundancy of having three inputs and
+two outputs. At the zero $s=1$, however, the null space becomes two-dimensional,
+\begin{equation}
+    \ker\mathbf{P}(1) = \operatorname{span}\left\{
+    \underbrace{\begin{bmatrix}-1\\1\\-1/3\\1/3\\ \hline 0\\-2\\1\end{bmatrix}}_{
+        \text{limit of }\eqref{eq:genericnull}},\;
+    \underbrace{\begin{bmatrix}0\\0\\1/3\\-1/3\\ \hline 0\\1\\0\end{bmatrix}}_{
+        \text{additional direction}}\right\},
+    \label{eq:null212}
+\end{equation}
+and it is the second, additional direction that constitutes the zero. The state and input zero
+directions are therefore
+\begin{equation}
+    \mathbf{x}_0 = \frac{1}{3}\begin{bmatrix}0\\0\\1\\-1\end{bmatrix},
+    \qquad
+    \mathbf{u}_0 = \begin{bmatrix}0\\1\\0\end{bmatrix},
+    \qquad
+    \mathbf{u}(t) = \mathbf{u}_0\,e^{+t} .
+    \label{eq:dir212}
+\end{equation}
+An exponentially growing signal applied to the second input channel, together with the matching
+initial state, produces an output that is identically zero for all times.
+
+\subsection{Discussion and conclusion}
+
+For $p\neq m$ the zero problem can no longer be reduced to a determinant, and two consequences
+follow. First, the definition must be based on the rank of the Rosenbrock
+matrix~\eqref{eq:ranktest}, and for a fat system the zero manifests itself as an \emph{increase}
+of the dimension of an already non-trivial null space, cf.~\eqref{eq:genericnull}
+and~\eqref{eq:null212}. Second, the transfer-function route through the Smith--McMillan form
+becomes attractive, because it delivers the pole and zero polynomials simultaneously and reveals
+the structure -- provided the pole polynomial is built from the minors of all orders.
+
+For the given example both routes agree: the pole polynomial is $(s+1)(s+2)^2(s-1)$, the zero
+polynomial is $(s-1)$, and the system possesses one transmission zero at $z=+1$.
+
+Two observations deserve to be pointed out. Firstly, the transmission zero at $s=+1$ coincides
+with a pole at $s=+1$. As in Sec.~\ref{sec:example211}, pole and zero act in different
+directions, so no unstable pole/zero cancellation takes place and the realisation stays minimal
+and thus stabilisable. Nevertheless, the coincidence is the worst conceivable constellation for
+control: a right half plane zero limits the achievable bandwidth from above while a right half
+plane pole requires a minimum bandwidth from below, and with $z=p$ these two requirements
+collide. Any controller for~\eqref{eq:ex212} will therefore exhibit very poor sensitivity peaks.
+
+Secondly, this example demonstrates why the popular shortcut of searching frequencies at which
+$\mathbf{G}(z)$ loses rank is unreliable. Here $\mathbf{G}(s)$ is not even defined at $s=1$, and
+the second column of~\eqref{eq:ex212simple} evaluated at $s=1$ is $[0\ \ 1/3]^T\neq\mathbf{0}$,
+although $\mathbf{u}_0=[0\ \ 1\ \ 0]^T$ is the input zero direction. The state-space rank
+test~\eqref{eq:ranktest} handles this situation correctly, which is a strong argument for
+preferring it.
+
+\section{System perturbation}
+\label{sec:perturbation}
+
+\subsection{Problem setting}
+
+The system under consideration is
+\begin{equation}
+    \mathbf{G}(s) = \mathbf{W}\,\mathbf{N}(s)\,\mathbf{W}^{-1},\qquad
+    \mathbf{W}=\begin{bmatrix}7&8\\6&7\end{bmatrix},\qquad
+    \mathbf{N}(s)=\begin{bmatrix}\frac{1}{s+1}&0\\0&\frac{2}{s+2}\end{bmatrix},
+    \label{eq:G213}
+\end{equation}
+controlled by $\mathbf{K}=-\mathbf{I}$ in the feedback configuration of Fig.~1 of the
+assignment, which is reproduced in Fig.~\ref{fig:loop213}. Because $\mathbf{G}$ is similar to the
+diagonal matrix $\mathbf{N}$, its poles are $\{-1,-2\}$ and its McMillan degree is $2$;
+$\mathbf{G}$ is stable. Two properties of $\mathbf{W}$ dominate everything that follows:
+$\det\mathbf{W}=1$, so $\mathbf{W}$ is invertible, but its condition number is
+$\kappa(\mathbf{W})=\bar{\sigma}(\mathbf{W})/\underline{\sigma}(\mathbf{W})=197.99$, i.e.\ the
+plant is strongly ill-conditioned. At steady state the two channels have equal gain and
+$\mathbf{G}(0)=\mathbf{W}\mathbf{I}\mathbf{W}^{-1}=\mathbf{I}$, while
+$\|\mathbf{G}\|_\infty = 32.68$.
+
+\begin{figure}[htb]
+  \centering
+  \tikzstyle{block}     = [draw, rectangle, minimum height=0.9cm, minimum width=1.4cm]
+  \tikzstyle{connector} = [->, thick]
+  \tikzstyle{sum}       = [circle, inner sep=0pt, minimum size=3mm, draw=black, thick]
+  \tikzstyle{inout}     = []
+  \begin{tikzpicture}[auto, >=stealth']
+      \node[sum]   (s1) at (0,0)      {};
+      \node[block] (G)  at (2.6,0)    {$\mathbf{G}$};
+      \node[sum]   (s2) at (2.6,-2.2) {};
+      \node[block] (K)  at (0,-2.2)   {$\mathbf{K}$};
+      \node[inout] (w1) at (-1.9,0)   {$\mathbf{w}_1$};
+      \node[inout] (w2) at (2.6,-3.4) {$\mathbf{w}_2$};
+      \coordinate (c1) at (4.4,0);
+      \coordinate (c2) at (4.4,-2.2);
+      \draw[connector] (w1) -- (s1);
+      \draw[connector] (s1) -- node {$\mathbf{e}_1$} (G);
+      \draw[thick]     (G)  -- (c1) -- (c2);
+      \draw[connector] (c2) -- (s2);
+      \draw[connector] (w2) -- (s2);
+      \draw[connector] (s2) -- node[swap] {$\mathbf{e}_2$} (K);
+      \draw[connector] (K)  -- (s1);
+  \end{tikzpicture}
+  \caption{Feedback loop of the assignment with the two exogenous inputs $\mathbf{w}_1$,
+           $\mathbf{w}_2$ and the two loop signals $\mathbf{e}_1$, $\mathbf{e}_2$.}
+  \label{fig:loop213}
+\end{figure}
+
+\subsection{(a) Internal stability}
+
+\paragraph{Conditions.} A feedback loop is internally stable if a bounded signal injected at any
+point of the loop produces bounded signals everywhere in the loop. For the configuration of
+Fig.~\ref{fig:loop213} the loop equations read
+$\mathbf{e}_1=\mathbf{w}_1+\mathbf{K}\mathbf{e}_2$ and
+$\mathbf{e}_2=\mathbf{w}_2+\mathbf{G}\mathbf{e}_1$, so that
+\begin{equation}
+    \begin{bmatrix}\mathbf{e}_1\\ \mathbf{e}_2\end{bmatrix}
+    =
+    \begin{bmatrix}\mathbf{I} & -\mathbf{K}\\ -\mathbf{G} & \mathbf{I}\end{bmatrix}^{-1}
+    \begin{bmatrix}\mathbf{w}_1\\ \mathbf{w}_2\end{bmatrix}
+    =
+    \begin{bmatrix}
+        (\mathbf{I}-\mathbf{K}\mathbf{G})^{-1} &
+        \mathbf{K}(\mathbf{I}-\mathbf{G}\mathbf{K})^{-1}\\[4pt]
+        \mathbf{G}(\mathbf{I}-\mathbf{K}\mathbf{G})^{-1} &
+        (\mathbf{I}-\mathbf{G}\mathbf{K})^{-1}
+    \end{bmatrix}
+    \begin{bmatrix}\mathbf{w}_1\\ \mathbf{w}_2\end{bmatrix} .
+    \label{eq:internalstability}
+\end{equation}
+The closed loop is internally stable if and only if all four transfer matrices
+in~\eqref{eq:internalstability} are stable, i.e.\ belong to $\mathcal{RH}_\infty$. The sign
+convention deserves a remark: the summation points of Fig.~\ref{fig:loop213} are additive and the
+sign reversal of the loop is contained in the controller $\mathbf{K}=-\mathbf{I}$ itself. This is
+the only consistent reading of the problem, since with an additional inversion at the summing
+junction the loop transfer would become $+\mathbf{G}$ and the four blocks would contain
+$(\mathbf{I}-\mathbf{G})^{-1}=\mathbf{W}\operatorname{diag}\!\big(\tfrac{s+1}{s},
+\tfrac{s+2}{s}\big)\mathbf{W}^{-1}$, i.e.\ a double pole at the origin and an internally
+unstable loop, which would render parts (b) and (c) meaningless.
+
+\paragraph{Evaluation.} With $\mathbf{K}=-\mathbf{I}$ the loop transfer function is
+$\mathbf{L}=-\mathbf{K}\mathbf{G}=\mathbf{G}$ and the sensitivity and complementary sensitivity
+follow from~\eqref{eq:G213} by the similarity transformation,
+\begin{align}
+    \mathbf{S} &= (\mathbf{I}+\mathbf{G})^{-1}
+    = \mathbf{W}\operatorname{diag}\!\left(\frac{s+1}{s+2},\ \frac{s+2}{s+4}\right)\mathbf{W}^{-1},
+    \label{eq:S213}\\
+    \mathbf{T} &= \mathbf{G}(\mathbf{I}+\mathbf{G})^{-1}
+    = \mathbf{W}\operatorname{diag}\!\left(\frac{1}{s+2},\ \frac{2}{s+4}\right)\mathbf{W}^{-1}
+    = \mathbf{I}-\mathbf{S}.
+    \label{eq:T213}
+\end{align}
+Both have the poles $\{-2,-4\}$ and are therefore stable. Equivalently, the closed-loop
+characteristic polynomial is obtained from
+\begin{equation}
+    \det\big(\mathbf{I}+\mathbf{G}(s)\big)\cdot\chi_{\mathbf{G}}(s)
+    = \frac{s+4}{s+1}\cdot(s+1)(s+2) = (s+2)(s+4),
+    \label{eq:charpoly213}
+\end{equation}
+whose roots $\{-2,-4\}$ lie in the open left half plane. The four blocks
+of~\eqref{eq:internalstability} evaluate to
+\begin{equation}
+    (\mathbf{I}-\mathbf{K}\mathbf{G})^{-1}=\mathbf{S},\quad
+    \mathbf{K}(\mathbf{I}-\mathbf{G}\mathbf{K})^{-1}=-\mathbf{S},\quad
+    \mathbf{G}(\mathbf{I}-\mathbf{K}\mathbf{G})^{-1}=\mathbf{T},\quad
+    (\mathbf{I}-\mathbf{G}\mathbf{K})^{-1}=\mathbf{S},
+    \label{eq:fourblocks}
+\end{equation}
+and all of them are stable. \emph{The closed loop is internally stable.} This was confirmed
+numerically:
+
+\begin{lstlisting}
+s = tf('s');  I2 = eye(2);
+W = [7 8; 6 7];   N = [1/(s+1) 0; 0 2/(s+2)];
+G = minreal(W*N/W);   K = -I2;
+T11 = minreal(inv(I2-K*G));    T12 = minreal(K/(I2-G*K));
+T21 = minreal(G/(I2-K*G));     T22 = minreal(inv(I2-G*K));
+pole(minreal(ss(inv(I2+G))))'
+\end{lstlisting}
+\begin{lstlisting}[style=matlabout]
+ans =    -2    -4
+\end{lstlisting}
+
+\paragraph{Is it necessary to check all conditions?} No, and~\eqref{eq:fourblocks} shows why. The
+controller $\mathbf{K}=-\mathbf{I}$ is a constant, non-singular, stable matrix without any
+dynamics, so no unstable pole/zero cancellation between $\mathbf{G}$ and $\mathbf{K}$ can occur
+and the loop has no hidden modes. As a consequence three of the four blocks are equal to
+$\pm\mathbf{S}$ and the fourth is $\mathbf{T}=\mathbf{I}-\mathbf{S}$, so the stability of all
+four follows from the stability of $\mathbf{S}$ alone. In general this shortcut is not
+permissible: as soon as $\mathbf{K}$ carries dynamics of its own, an unstable mode may cancel
+against a zero of $\mathbf{G}$ and remain invisible in one of the blocks while destabilising
+another, which is precisely the reason why all four conditions are stated
+in~\eqref{eq:internalstability}.
+
+\subsection{(b) Stability margins for additive and multiplicative perturbations}
+
+\paragraph{Uncertainty models and the $M$--$\Delta$ structure.} Two unstructured perturbations
+are considered, both weighted with $\mathbf{W}_1=\mathbf{W}_2=\mathbf{I}$ (not to be confused
+with the constant matrix $\mathbf{W}$ of~\eqref{eq:G213}),
+\begin{equation}
+    \mathbf{G}_p = \mathbf{G} + \mathbf{W}_1\boldsymbol{\Delta}_A
+    \quad\text{(additive)},
+    \qquad
+    \mathbf{G}_p = (\mathbf{I}+\mathbf{W}_2\boldsymbol{\Delta}_M)\,\mathbf{G}
+    \quad\text{(multiplicative at the output)} .
+    \label{eq:uncertainty}
+\end{equation}
+Pulling the perturbation out of the loop of Fig.~\ref{fig:loop213} yields the standard
+$\mathbf{M}$--$\boldsymbol{\Delta}$ configuration with the loop transfer matrix seen by
+$\boldsymbol{\Delta}$,
+\begin{align}
+    \mathbf{M}_A &= \mathbf{W}_1\,\mathbf{K}(\mathbf{I}-\mathbf{G}\mathbf{K})^{-1}
+                  = -(\mathbf{I}+\mathbf{G})^{-1} = -\mathbf{S},
+                  \label{eq:MA}\\
+    \mathbf{M}_M &= \mathbf{W}_2\,\mathbf{G}(\mathbf{I}-\mathbf{K}\mathbf{G})^{-1}\mathbf{K}
+                  = -\mathbf{G}(\mathbf{I}+\mathbf{G})^{-1} = -\mathbf{T}.
+                  \label{eq:MM}
+\end{align}
+Since the nominal loop was shown to be internally stable and
+$\boldsymbol{\Delta}\in\mathcal{RH}_\infty$, the small gain theorem states that the perturbed
+loop remains internally stable for all perturbations satisfying
+\begin{equation}
+    \|\boldsymbol{\Delta}\|_\infty < \gamma := \frac{1}{\|\mathbf{M}\|_\infty}
+    = \frac{1}{\max_\omega\bar{\sigma}\big(\mathbf{M}(j\omega)\big)} ,
+    \label{eq:smallgain}
+\end{equation}
+and that this bound is tight for full-block unstructured perturbations. The worst case therefore
+occurs at the frequency $\omega^*$ at which $\bar{\sigma}(\mathbf{M})$ attains its peak.
+
+\paragraph{Results.} Evaluating~\eqref{eq:MA} and~\eqref{eq:MM} gives
+
+\begin{lstlisting}
+S = minreal(inv(I2+G));   T = minreal(G/(I2+G));
+[nA, wA] = norm(-S, inf);   gammaA = 1/nA;
+[nM, wM] = norm(-T, inf);   gammaM = 1/nM;
+\end{lstlisting}
+\begin{lstlisting}[style=matlabout]
+ADD : ||M||inf = 16.371525 at w = 2.832745  ->  gamma = 0.061082
+MULT: ||M||inf = 16.340985 at w = 2.826999  ->  gamma = 0.061196
+\end{lstlisting}
+
+\noindent i.e.
+\begin{equation}
+    \gamma_A = 0.06108 \;\;\text{at}\;\; \omega^*_A = 2.833\ \mathrm{rad/s},
+    \qquad
+    \gamma_M = 0.06120 \;\;\text{at}\;\; \omega^*_M = 2.827\ \mathrm{rad/s}.
+    \label{eq:margins}
+\end{equation}
+The two margins are almost identical and the worst case is the additive perturbation with
+\begin{equation}
+    \boxed{\;\gamma = 0.0611 \quad\text{at}\quad \omega^* = 2.833\ \mathrm{rad/s}\;}
+    \label{eq:gamma}
+\end{equation}
+The corresponding singular value plot is shown in Fig.~\ref{fig:sigma213}. The peak of
+$24.28\,$dB is clearly visible and the two maximum singular values are indistinguishable over
+the whole low and mid frequency range; they only separate above $\omega\approx20\,$rad/s, where
+$\mathbf{M}_M$ rolls off with $-20\,$dB/decade while $\mathbf{M}_A$ tends to the constant
+$\mathbf{S}(\infty)=\mathbf{I}$.
+
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=0.95\textwidth]{images/t213_sigma.pdf}
+    \caption{Singular values of the additive and the multiplicative uncertainty loop transfer
+             matrices $\mathbf{M}_A=-\mathbf{S}$ and $\mathbf{M}_M=-\mathbf{T}$. The peak of
+             $\bar{\sigma}(\mathbf{M}_A)$ at $\omega^*=2.833$~rad/s determines the stability
+             margin $\gamma=1/16.372=0.0611$.}
+    \label{fig:sigma213}
+\end{figure}
+
+\paragraph{Why the margin is so small.} The result can be explained analytically and this also
+shows why the additive and the multiplicative case give nearly the same number.
+Splitting~\eqref{eq:S213} into its symmetric and antisymmetric part with respect to the two
+diagonal channels gives
+\begin{equation}
+    \mathbf{S}(s) = a(s)\,\mathbf{I} + b(s)\,\mathbf{E},
+    \qquad
+    \mathbf{E} = \mathbf{W}\operatorname{diag}(1,-1)\mathbf{W}^{-1}
+    = \begin{bmatrix}97&-112\\84&-97\end{bmatrix},
+    \label{eq:decomposition}
+\end{equation}
+with $a(s)=\tfrac{1}{2}\big(\tfrac{s+1}{s+2}+\tfrac{s+2}{s+4}\big)$ and
+\begin{equation}
+    b(s) = \frac{1}{2}\left(\frac{s+1}{s+2}-\frac{s+2}{s+4}\right)
+         = \frac{s}{2(s+2)(s+4)} .
+    \label{eq:bofs}
+\end{equation}
+The matrix $\mathbf{E}$ has $\bar{\sigma}(\mathbf{E})=\sqrt{38418}=196.0$, whereas
+$\|a\|_\infty\approx 1$. The peak of $\bar{\sigma}(\mathbf{S})$ is therefore governed almost
+entirely by $b$. Maximising
+$|b(j\omega)|=\omega/\big(2\sqrt{\omega^2+4}\sqrt{\omega^2+16}\big)$ gives
+\begin{equation}
+    \frac{\mathrm{d}}{\mathrm{d}\omega^2}
+    \frac{\omega^2}{(\omega^2+4)(\omega^2+16)} = 0
+    \;\;\Longrightarrow\;\;
+    \omega^2 = 8,\qquad
+    \omega^* \approx 2\sqrt{2} = 2.828\ \mathrm{rad/s},\qquad
+    |b(j\omega^*)| = \frac{1}{12},
+    \label{eq:analyticpeak}
+\end{equation}
+and hence $\bar{\sigma}(\mathbf{S})\approx\bar{\sigma}(\mathbf{E})/12=16.33$, which reproduces
+the numerical peak $16.37$ to within $0.2\,\%$ and the peak frequency to within $0.2\,\%$. The
+same calculation for $\mathbf{T}$ of~\eqref{eq:T213} produces the antisymmetric part
+$-b(s)$, i.e.\ the identical magnitude, which explains why $\gamma_A\approx\gamma_M$.
+
+The physical interpretation is the following. The two channels of $\mathbf{N}$ have different
+bandwidths, so their difference $b(s)$ is non-zero at intermediate frequencies. This difference
+is then amplified by the strongly ill-conditioned similarity transformation $\mathbf{W}$, whose
+condition number is $198$. At steady state both channels are identical
+($\mathbf{G}(0)=\mathbf{I}$) and the amplification vanishes, at high frequencies both channels
+roll off; in between, at $\omega^*\approx2\sqrt{2}$, the mismatch is maximal. In consequence an
+additive perturbation of only $\gamma\approx6.1\,\%$ of the steady-state gain
+$\bar{\sigma}(\mathbf{G}(0))=1$ -- or $0.19\,\%$ of $\|\mathbf{G}\|_\infty=32.68$ -- suffices to
+destabilise the loop, if it is applied in the worst possible direction. Ill-conditioned plants
+are notoriously sensitive in exactly this way.
+
+\subsection{(c) Construction of the destabilising perturbation}
+
+\paragraph{Construction.} A perturbation of the smallest possible size destabilises the loop if
+it makes $\mathbf{I}-\mathbf{M}\boldsymbol{\Delta}$ singular at some frequency. Let
+\begin{equation}
+    \mathbf{M}(j\omega^*) = \mathbf{U}\boldsymbol{\Sigma}\mathbf{V}^H,
+    \qquad
+    \mathbf{M}(j\omega^*)\,\mathbf{v}_1 = \bar{\sigma}\,\mathbf{u}_1,
+    \qquad \bar{\sigma}=\|\mathbf{M}\|_\infty ,
+    \label{eq:svd}
+\end{equation}
+be the singular value decomposition at the critical frequency. Choosing
+\begin{equation}
+    \boldsymbol{\Delta}(j\omega^*) = \gamma\,\mathbf{v}_1\mathbf{u}_1^H,
+    \qquad \gamma = \frac{1}{\bar{\sigma}},
+    \label{eq:deltaomega}
+\end{equation}
+aligns the perturbation with the worst-case input and output direction of $\mathbf{M}$, and
+indeed
+\begin{equation}
+    \mathbf{M}\boldsymbol{\Delta}\,\mathbf{u}_1
+    = \gamma\,\mathbf{M}\mathbf{v}_1\underbrace{(\mathbf{u}_1^H\mathbf{u}_1)}_{=1}
+    = \gamma\,\bar{\sigma}\,\mathbf{u}_1 = \mathbf{u}_1
+    \quad\Longrightarrow\quad
+    \det\!\big(\mathbf{I}-\mathbf{M}(j\omega^*)\boldsymbol{\Delta}(j\omega^*)\big)=0 .
+    \label{eq:singular}
+\end{equation}
+What remains is to realise~\eqref{eq:deltaomega} by a \emph{real rational and stable} transfer
+matrix, since $\mathbf{v}_1$ and $\mathbf{u}_1$ are complex. This is achieved by replacing every
+complex phase by a stable first-order all-pass factor
+\begin{equation}
+    f_i(s) = \pm\frac{\alpha_i-s}{\alpha_i+s},\qquad \alpha_i>0,
+    \qquad |f_i(j\omega)| = 1\ \ \forall\omega,
+    \qquad \angle f_i(j\omega^*) = \theta_i ,
+    \label{eq:allpass}
+\end{equation}
+where $\alpha_i=\omega^*/\tan(-\theta_i/2)$ realises any phase $\theta_i\in(-180^\circ,0^\circ)$
+and the negative sign shifts the range to $(0^\circ,180^\circ)$. Collecting the magnitudes and
+these all-pass factors into the vectors $\tilde{\mathbf{v}}(s)$ and $\tilde{\mathbf{u}}(s)$ with
+$\tilde{\mathbf{v}}(j\omega^*)=\mathbf{v}_1$ and
+$\tilde{\mathbf{u}}(j\omega^*)=\overline{\mathbf{u}_1}$ gives the rank-one perturbation
+\begin{equation}
+    \boldsymbol{\Delta}(s) = \gamma\,\tilde{\mathbf{v}}(s)\,\tilde{\mathbf{u}}(s)^T
+    \;\in\;\mathcal{RH}_\infty .
+    \label{eq:deltaconstruction}
+\end{equation}
+Because every factor is all-pass and $\|\mathbf{v}_1\|_2=\|\mathbf{u}_1\|_2=1$, the resulting
+$\boldsymbol{\Delta}$ satisfies $\bar{\sigma}(\boldsymbol{\Delta}(j\omega))=\gamma$ at
+\emph{every} frequency, hence
+\begin{equation}
+    \|\boldsymbol{\Delta}\|_\infty = \gamma
+    \qquad\text{and}\qquad
+    \bar{\sigma}\big(\boldsymbol{\Delta}(j\omega^*)\big) = \gamma ,
+    \label{eq:deltaproperties}
+\end{equation}
+which is exactly what the assignment demands.
+
+\paragraph{Numerical result.} For the worst case, the additive perturbation with
+$\mathbf{M}_A=-\mathbf{S}$, $\omega^*=2.8327$~rad/s and $\bar{\sigma}=16.3715$, the singular
+vectors are
+\begin{equation}
+    \mathbf{v}_1 = \begin{bmatrix}0.6886\,\angle\,0.00^\circ\\
+                                  0.7252\,\angle\,{-}178.34^\circ\end{bmatrix},
+    \qquad
+    \mathbf{u}_1 = \begin{bmatrix}0.7851\,\angle\,{-}178.48^\circ\\
+                                  0.6194\,\angle\,179.82^\circ\end{bmatrix},
+    \label{eq:svectors}
+\end{equation}
+which lead to the all-pass corner frequencies $\alpha=\{\infty,\ 0.0409\}$ for
+$\tilde{\mathbf{v}}$ and $\alpha=\{214.0,\ 0.004546\}$ for $\tilde{\mathbf{u}}$. The resulting
+perturbation is
+
+\begin{lstlisting}
+[U,Sg,V] = svd(freqresp(Madd, wA));  gam = 1/Sg(1,1);
+for i = 1:2
+    vt(i,1) = abs(V(i,1))*allpass( angle(V(i,1)), wA);
+    ut(i,1) = abs(U(i,1))*allpass(-angle(U(i,1)), wA);
+end
+Delta = gam*vt*ut.';
+\end{lstlisting}
+\begin{lstlisting}[style=matlabout]
+Delta(1,1) =  0.033020 (s-214)/(s+214)
+Delta(1,2) = -0.026052 (s-0.004546)/(s+0.004546)
+Delta(2,1) = -0.034774 (s-214)(s-0.04094)/((s+214)(s+0.04094))
+Delta(2,2) =  0.027436 (s-0.04094)(s-0.004546)/((s+0.04094)(s+0.004546))
+
+||Delta||inf              = 0.06108166   (= gamma)
+sigma(Delta(j w*))        = [0.06108166 ; 3.5e-18]
+eig(M(j w*) Delta(j w*))  = [1.0000 ; 0.0000]
+det(I - M(j w*)Delta(j w*)) = 3.1e-16
+\end{lstlisting}
+
+\noindent All poles of $\boldsymbol{\Delta}$ lie at $-214$, $-0.0409$ and $-0.004546$, so
+$\boldsymbol{\Delta}\in\mathcal{RH}_\infty$; it is of rank one and its largest singular value
+equals $\gamma$ at every frequency, as predicted by~\eqref{eq:deltaproperties}.
+
+\paragraph{Instability of the interconnection.} Closing the loop of Fig.~\ref{fig:loop213} around
+the perturbed plant $\mathbf{G}_p=\mathbf{G}+\boldsymbol{\Delta}$ gives the closed-loop poles
+\begin{equation}
+    \lambda_{1,2} = (-6.9\cdot10^{-12}) \pm j\,2.832745 ,
+    \label{eq:perturbedpoles}
+\end{equation}
+i.e.\ a complex conjugate pair exactly on the imaginary axis at $\pm j\omega^*$ -- within the
+numerical accuracy of the computation. The perturbed closed loop is therefore no longer
+asymptotically stable: it sustains an undamped oscillation at the critical frequency
+$\omega^*$, which is precisely the interpretation of the condition
+$\det(\mathbf{I}-\mathbf{M}\boldsymbol{\Delta})=0$ at $s=j\omega^*$
+in~\eqref{eq:singular}. Scaling the perturbation by a factor $k$ confirms that the constructed
+$\boldsymbol{\Delta}$ is exactly on the stability boundary, cf.~Fig.~\ref{fig:poles213}:
+\begin{center}
+\begin{tabular}{l|ccc}
+    scaling $k$ in $\mathbf{G}_p=\mathbf{G}+k\boldsymbol{\Delta}$ & $0.98$ & $1.00$ & $1.02$\\\hline
+    $\max_i\operatorname{Re}\{\lambda_i\}$ & $-0.00455$ & $-6.9\cdot10^{-12}$ & $+0.05828$\\
+    verdict & stable & marginally stable & unstable
+\end{tabular}
+\end{center}
+
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=0.95\textwidth]{images/t213_poles.pdf}
+    \caption{Largest real part of the closed-loop poles when the worst-case perturbation is
+             scaled by $k$. The stability boundary is crossed exactly at $k=1$, i.e.\ at
+             $\|k\boldsymbol{\Delta}\|_\infty=\gamma$, which confirms that the margin
+             $\gamma=0.0611$ of~\eqref{eq:gamma} is tight.}
+    \label{fig:poles213}
+\end{figure}
+
+\subsection{Discussion and conclusion}
+
+The nominal loop of Fig.~\ref{fig:loop213} is internally stable, with closed-loop poles at $-2$
+and $-4$. Checking one of the four conditions of~\eqref{eq:internalstability} was sufficient in
+this particular case, because the static controller $\mathbf{K}=-\mathbf{I}$ excludes hidden
+modes; the general case requires all four.
+
+Robustness, however, is poor. The stability margins for additive and multiplicative output
+perturbations are practically identical, $\gamma_A=0.0611$ and $\gamma_M=0.0612$, with the
+additive case being marginally the worse one, and the worst case occurs at
+$\omega^*=2.833$~rad/s. The decomposition~\eqref{eq:decomposition} traces this back to the
+combination of two effects: the two channels of $\mathbf{N}(s)$ have different bandwidths, and
+their difference is amplified by the factor $\bar{\sigma}(\mathbf{E})=196$ caused by the
+ill-conditioned similarity transformation $\mathbf{W}$. A perturbation of about six percent of
+the steady-state gain in the worst direction is thus enough to destabilise the loop, even though
+the plant itself is stable and the loop has generous pole locations.
+
+Finally, the perturbation constructed in part (c) shows that the bound of the small gain theorem
+is not conservative for full-block unstructured uncertainty: an all-pass, rank-one
+$\boldsymbol{\Delta}\in\mathcal{RH}_\infty$ with $\|\boldsymbol{\Delta}\|_\infty=\gamma$ exactly
+places a pair of closed-loop poles on the imaginary axis at $\pm j\omega^*$, and any larger
+perturbation in the same direction pushes them into the right half plane. The margin
+$\gamma=1/\|\mathbf{M}\|_\infty$ is therefore tight, and $\|\mathbf{M}\|_\infty$ is the correct
+measure of robustness for this uncertainty class.
